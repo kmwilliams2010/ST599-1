@@ -3,7 +3,7 @@
 # Two sample t test
 
 data <- read.csv("VerbalfluencyST202.csv")
-
+#hi
 t.test(data$Female, data$Male, alternative="two.sided")
 
 install.packages("ggplot2")
