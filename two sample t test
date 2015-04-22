@@ -1,0 +1,35 @@
+# ST202 Recitation Week 3
+
+# Two sample t test
+
+data <- read.csv("VerbalfluencyST202.csv")
+
+t.test(data$Female, data$Male, alternative="two.sided")
+
+install.packages("ggplot2")
+library(ggplot2)
+
+attach(data)
+
+Male <- data[1:20,2]
+
+par(mfrow=c(1,2))
+hist(Female, breaks=9, xlab="Number of Animals", main="Histogram of Females", ylim=c(10:30))
+hist(Male, breaks=7, xlab="Number of Animals", main="Histogram of Males")
+
+
+boxplot(Female, Male, names=c("Females", "Males"), ylab="Number of Animals", main="Side by Side Boxplots")
+
+mean(Female)
+sd(Female)
+mean(Male)
+sd(Male)
+
+qplot(Female, geom="histogram", binwidth=2, color="white", xlim=c(10,30), ylab="Frequency", xlab="Number of Animals", main="Females")
+qplot(Male, geom="histogram", binwidth=2, xlim=c(10,30), color="white", ylab="Frequency", xlab="Number of Animals", main="Males")
+
+
+
+qplot(x=Female, y geom="boxplot", ylab="Frequency", xlab="Number of Animals", main="Females")
+qplot(Male, geom="histogram", binwidth=2, xlim=c(10,30), color="white", ylab="Frequency", xlab="Number of Animals", main="Males")
+geom_boxplot(Female)
