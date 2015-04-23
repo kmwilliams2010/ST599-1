@@ -1,0 +1,521 @@
+# ST599 Project 1
+
+set.seed(0)
+
+################### TRAINING DATA #########################
+
+# Loading data
+
+install.packages("foreign")
+library(foreign)
+Astro2 <- read.arff("c:/AstronomyTrainingData.txt")
+Astrotest2 <- read.arff("c:/AstronomyTestData.txt")
+
+# taking care of NAs (about 15%)
+
+for (i in 1:dim(Astro2)[2]){
+  print(c(i,table(is.na(Astro2[i]))))
+}
+
+
+# column 4-9 have NAs (about 15%)
+
+Astrotest2 <- read.arff("C:/AstronomyTestData.txt")
+for (i in 1:dim(Astrotest2)[2]){
+  print(c(i,table(is.na(Astrotest2[i]))))
+}
+
+# same columns have NAs, 3 NAs in column 83
+# decided to remove column 4-9 and 3 rows
+
+Astro2 <- Astro2[,-seq(4,9,1)]
+Astrotest2 <- Astrotest2[,-seq(4,9,1)]
+narows <- as.numeric(rownames(subset(Astrotest2,is.na(Astrotest2[,83-6])==TRUE)))
+Astrotest2 <- Astrotest2[-narows,]
+
+
+## scaling the data
+
+scaledAstro2 <- scale(Astro2[,2:(dim(Astro2)[2]-1)], center = TRUE, scale = apply(Astro2[,2:(dim(Astro2)[2]-1)], 2, sd, na.rm = TRUE)+0.001) # notice 0.001
+scaledAstro2 <- cbind(Astro2[,1],scaledAstro2,Astro2[,dim(Astro2)[2]])
+colnames(scaledAstro2)[1] <- "ID"
+colnames(scaledAstro2)[81] <- "Lable"
+
+
+# pca on scaled data
+
+scaledastropca2 <- prcomp(~scaledAstro2[,2]+
+                          scaledAstro2[,3]+
+                          scaledAstro2[,4]+
+                          scaledAstro2[,5]+
+                          scaledAstro2[,6]+
+                          scaledAstro2[,7]+
+                          scaledAstro2[,8]+
+                          scaledAstro2[,9]+
+                          scaledAstro2[,10]+
+                          scaledAstro2[,11]+
+                          scaledAstro2[,12]+
+                          scaledAstro2[,13]+
+                          scaledAstro2[,14]+
+                          scaledAstro2[,15]+
+                          scaledAstro2[,16]+
+                          scaledAstro2[,17]+
+                          scaledAstro2[,18]+
+                          scaledAstro2[,19]+
+                          scaledAstro2[,20]+
+                          scaledAstro2[,21]+
+                          scaledAstro2[,22]+
+                          scaledAstro2[,23]+
+                          scaledAstro2[,24]+
+                          scaledAstro2[,25]+
+                          scaledAstro2[,26]+
+                          scaledAstro2[,27]+
+                          scaledAstro2[,28]+
+                          scaledAstro2[,29]+
+                          scaledAstro2[,30]+
+                          scaledAstro2[,31]+
+                          scaledAstro2[,32]+
+                          scaledAstro2[,33]+
+                          scaledAstro2[,34]+
+                          scaledAstro2[,35]+
+                          scaledAstro2[,36]+
+                          scaledAstro2[,37]+
+                          scaledAstro2[,38]+
+                          scaledAstro2[,39]+
+                          scaledAstro2[,40]+
+                          scaledAstro2[,41]+
+                          scaledAstro2[,42]+
+                          scaledAstro2[,43]+
+                          scaledAstro2[,44]+
+                          scaledAstro2[,45]+
+                          scaledAstro2[,46]+
+                          scaledAstro2[,47]+
+                          scaledAstro2[,48]+
+                          scaledAstro2[,49]+
+                          scaledAstro2[,50]+
+                          scaledAstro2[,51]+
+                          scaledAstro2[,52]+
+                          scaledAstro2[,53]+
+                          scaledAstro2[,54]+
+                          scaledAstro2[,55]+
+                          scaledAstro2[,56]+
+                          scaledAstro2[,57]+
+                          scaledAstro2[,58]+
+                          scaledAstro2[,59]+
+                          scaledAstro2[,60]+
+                          scaledAstro2[,61]+
+                          scaledAstro2[,62]+
+                          scaledAstro2[,63]+
+                          scaledAstro2[,64]+
+                          scaledAstro2[,65]+
+                          scaledAstro2[,66]+
+                          scaledAstro2[,67]+
+                          scaledAstro2[,68]+
+                          scaledAstro2[,69]+
+                          scaledAstro2[,70]+
+                          scaledAstro2[,71]+
+                          scaledAstro2[,72]+
+                          scaledAstro2[,73]+
+                          scaledAstro2[,74]+
+                          scaledAstro2[,75]+
+                          scaledAstro2[,76]+
+                          scaledAstro2[,77]+
+                          scaledAstro2[,78]+
+                          scaledAstro2[,79]+
+                          scaledAstro2[,80]                    
+                        ,na.action = na.omit)
+
+# data frame of significant variables from PCA
+
+nyt.latent.sem <- scaledastropca2$rotation
+rownames(nyt.latent.sem) <- seq(2,80,1)
+screeplot(scaledastropca2,50,type="lines")
+signif(sort(nyt.latent.sem[,1],decreasing=TRUE),2)
+varvec <- as.numeric(names(signif(sort(nyt.latent.sem[,1],decreasing=TRUE),2)))
+
+# a plot to figure out the number of clusters (elbow method). It is subjective though.
+
+wssplot <- function(data, nc=15, seed=1234){
+  wss <- (nrow(data)-1)*sum(apply(data,2,var))
+  for (i in 2:nc){
+    set.seed(seed)
+    wss[i] <- sum(kmeans(data, centers=i,iter.max = 30,nstart=5)$withinss)}
+  plot(1:nc, wss, type="b", xlab="Number of Clusters",
+       ylab="Within groups sum of squares")}
+
+wssplot(scaledAstro2[,varvec[1:2]], nc=30, seed=0)
+
+# use a plot to make a guess? it suggests 4ish
+
+
+# finding the number of clusters (k-means) and number of significant variables using silhouette width
+
+install.packages("cluster")
+library(cluster)
+silmat <- data.frame()
+sil.kMeansDigit <- matrix()
+for (j in 1:6){
+  distancesDigit <- dist(scaledAstro2[,varvec[1:j],drop=FALSE])
+  for (i in 2:5){
+    
+    kmeansAstro1 <- kmeans(scaledAstro2[,varvec[1:j]], i,iter.max = 30,nstart=5)
+    sil.kMeansDigit <- (silhouette(kmeansAstro1$cluster, distancesDigit))
+    silmat[i-1,j] <- mean(sil.kMeansDigit[,3])
+  }}
+
+silmat
+max(silmat) 
+# Corresponding to using 2 clusters with first 2 significant variables from pca
+image(as.matrix(silmat))
+
+
+# clustering (k-means) training data
+
+kmeansAstro1 <- kmeans(scaledAstro2[,varvec[1:2]], 2,iter.max = 30,nstart=5)
+table(kmeansAstro1$cluster) #mostly in cluster 2
+
+# subseting the points in the bigger cluster
+
+scaledAstro3 <- scaledAstro2[(which(kmeansAstro1$cluster %in% 1)),] 
+dim(scaledAstro3)
+grouping <- seq(1:dim(scaledAstro2)[1])
+ID <- seq(1:dim(scaledAstro2)[1])
+dd <- cbind(ID,grouping)
+grouping1 <- dd[(which(kmeansAstro1$cluster %in% 1)),]
+grouping1[,2] <- 1
+grouping <- dd[-(which(kmeansAstro1$cluster %in% 1)),]
+
+# split up the big cluster using gap statistic
+
+Kmax2=5
+gskmn2 <- clusGap(scaledAstro3[,varvec[1:2]], FUN = kmeans, nstart = 5,iter.max = 30, K.max = Kmax2, B = 5)
+for(k in 1:(Kmax2-1)) {
+  if(gskmn2$Tab[k,3]>gskmn2$Tab[(k+1),3]-gskmn2$Tab[(k+1),4]) {print(k+1)}; 
+  break;
+}
+
+# so we gotta split it in two clusters
+
+kmeansAstro12 <- kmeans(scaledAstro3[,varvec[1:2]], 2,iter.max = 30,nstart=5)
+table(kmeansAstro12$cluster) #mostly in cluster 1
+scaledAstro4 <- scaledAstro3[(which(kmeansAstro12$cluster %in% 2)),] 
+
+# subseting the points in the bigger cluster 
+
+grouping2 <- grouping[(which(kmeansAstro12$cluster %in% 2)),]
+grouping2[,2] <- 2
+grouping3 < -grouping[-(which(kmeansAstro12$cluster %in% 1)),]
+grouping3[,2] <- 3
+clusters <- rbind(grouping1,grouping2,grouping3)
+clustersfinal <- clusters[order (clusters[,1]),]
+
+dim(scaledAstro4)
+
+
+# using gap statistic to split bigger cluster
+
+Kmax2=5
+gskmn2 <- clusGap(scaledAstro4[,varvec[1:2]], FUN = kmeans, nstart = 5,iter.max = 30, K.max = Kmax2, B = 5)
+for(k in 1:(Kmax2-1)) {
+  if(gskmn2$Tab[k,3]>gskmn2$Tab[(k+1),3]-gskmn2$Tab[(k+1),4]) {print(k+1)}; 
+  break;
+}
+kmeansAstro1 <- kmeans(scaledAstro2[,varvec[1:2]], 2,iter.max = 30,nstart=5)
+distancesDigit <- dist(scaledAstro2[,varvec[1:2]])
+mdsDigit <- cmdscale(distancesDigit, k=2)
+plot(mdsDigit[,1], mdsDigit[,2],col=clustersfinal[,2]) 
+
+# result from gap gave 1 cluster so, 3 total clusters
+
+
+# visualization of clustering
+
+kmeansAstro1<-kmeans(scaledAstro2[,varvec[1:2]], 2,iter.max = 30,nstart=5)
+distancesDigit<- dist(scaledAstro2[,varvec[1:2]])
+mdsDigit <- cmdscale(distancesDigit, k=2)
+plot(mdsDigit[,1], mdsDigit[,2],col=kmeansAstro1$cluster)
+
+
+####################LOW NOISE DATA Cluster using training results#############
+
+AstroNoise <- read.table("C:/LowNoiseData.txt", header=F)
+Astrotest2$obs <- c(1:50121)
+
+##Created quick dummy variable to match observations identified as possible low noise 
+##within the test data and subsetted the matches from the Low Noise vector and removed
+##the dummy variable to get rid of any dimension changes
+
+LowNtest <- Astrotest2[match(Astrotest2$obs, AstroNoise$V1, nomatch=0),]
+head(LowNtest)
+Astrotest2$obs <- NULL
+LowNtest <- LowNtest[,-c(81,82)]
+scaledLNTest2 <- scale(LowNtest[,2:(dim(LowNtest)[2]-1)], center = TRUE, scale = apply(LowNtest[,2:(dim(LowNtest)[2]-1)], 2, sd, na.rm = TRUE)+0.001) # notice 0.001
+scaledLNTest2 <- cbind(LowNtest[,1],LowNtest)
+scaledLNTest2 <- scaledLNTest2[,-1]
+
+colnames(scaledLNTest2)[1] <- "ID"
+
+# scaled PCA on LN data
+
+scaledLNpca2<-prcomp(~scaledLNTest2[,2]+
+                       scaledLNTest2[,3]+
+                       scaledLNTest2[,4]+
+                       scaledLNTest2[,5]+
+                       scaledLNTest2[,6]+
+                       scaledLNTest2[,7]+
+                       scaledLNTest2[,8]+
+                       scaledLNTest2[,9]+
+                       scaledLNTest2[,10]+
+                       scaledLNTest2[,11]+
+                       scaledLNTest2[,12]+
+                       scaledLNTest2[,13]+
+                       scaledLNTest2[,14]+
+                       scaledLNTest2[,15]+
+                       scaledLNTest2[,16]+
+                       scaledLNTest2[,17]+
+                       scaledLNTest2[,18]+
+                       scaledLNTest2[,19]+
+                       scaledLNTest2[,20]+
+                       scaledLNTest2[,21]+
+                       scaledLNTest2[,22]+
+                       scaledLNTest2[,23]+
+                       scaledLNTest2[,24]+
+                       scaledLNTest2[,25]+
+                       scaledLNTest2[,26]+
+                       scaledLNTest2[,27]+
+                       scaledLNTest2[,28]+
+                       scaledLNTest2[,29]+
+                       scaledLNTest2[,30]+
+                       scaledLNTest2[,31]+
+                       scaledLNTest2[,32]+
+                       scaledLNTest2[,33]+
+                       scaledLNTest2[,34]+
+                       scaledLNTest2[,35]+
+                       scaledLNTest2[,36]+
+                       scaledLNTest2[,37]+
+                       scaledLNTest2[,38]+
+                       scaledLNTest2[,39]+
+                       scaledLNTest2[,40]+
+                       scaledLNTest2[,41]+
+                       scaledLNTest2[,42]+
+                       scaledLNTest2[,43]+
+                       scaledLNTest2[,44]+
+                       scaledLNTest2[,45]+
+                       scaledLNTest2[,46]+
+                       scaledLNTest2[,47]+
+                       scaledLNTest2[,48]+
+                       scaledLNTest2[,49]+
+                       scaledLNTest2[,50]+
+                       scaledLNTest2[,51]+
+                       scaledLNTest2[,52]+
+                       scaledLNTest2[,53]+
+                       scaledLNTest2[,54]+
+                       scaledLNTest2[,55]+
+                       scaledLNTest2[,56]+
+                       scaledLNTest2[,57]+
+                       scaledLNTest2[,58]+
+                       scaledLNTest2[,59]+
+                       scaledLNTest2[,60]+
+                       scaledLNTest2[,61]+
+                       scaledLNTest2[,62]+
+                       scaledLNTest2[,63]+
+                       scaledLNTest2[,64]+
+                       scaledLNTest2[,65]+
+                       scaledLNTest2[,66]+
+                       scaledLNTest2[,67]+
+                       scaledLNTest2[,68]+
+                       scaledLNTest2[,69]+
+                       scaledLNTest2[,70]+
+                       scaledLNTest2[,71]+
+                       scaledLNTest2[,72]+
+                       scaledLNTest2[,73]+
+                       scaledLNTest2[,74]+
+                       scaledLNTest2[,75]+
+                       scaledLNTest2[,76]+
+                       scaledLNTest2[,77]+
+                       scaledLNTest2[,78]+
+                       scaledLNTest2[,79]+
+                       scaledLNTest2[,80]                    
+                     ,na.action = na.omit)
+
+# significant variables from PCA
+
+LN.nyt.latent.sem <- scaledLNpca2$rotation
+rownames(LN.nyt.latent.sem) <- seq(2,80,1)
+screeplot(scaledastropca2,50,type="lines")
+signif(sort(nyt.latent.sem[,1],decreasing=TRUE),2)
+varvec2 <- as.numeric(names(signif(sort(LN.nyt.latent.sem[,1],decreasing=TRUE),2)))
+
+# show first 10 significant variables - training and LN
+
+varvec[1:10]
+varvec2[1:10]
+
+# silouette matrix on LN data
+
+silmat3 <- data.frame()
+sil.kMeansDigit3 <- matrix()
+for (j in 1:6){
+  distancesDigit3 <- dist(scaledLNTest2[,varvec2[1:j],drop=FALSE])
+  for (i in 2:5){
+
+    kmeansAstro3 <- kmeans(scaledLNTest2[,varvec2[1:j]], i,iter.max = 30,nstart=5)
+    sil.kMeansDigit3 <- (silhouette(kmeansAstro3$cluster, distancesDigit3))
+    silmat3[i-1,j] <- mean(sil.kMeansDigit3[,3])
+  }}
+silmat3
+max(silmat3)
+
+# Corresponding to using 2 clusters with first significant variable from pca. However, minimum
+# number of variables that Gap takes is two, so we pick the first two significant variables
+
+
+# subseting the points in the big cluster
+
+kmeansAstro3 < -kmeans(scaledLNTest2[,varvec2[1:2]], 2,iter.max = 30,nstart=5)
+table(kmeansAstro3$cluster) #mostly in cluster 1
+scaledLNTest3 <- scaledLNTest2[(which(kmeansAstro3$cluster %in% 1)),] 
+dim(scaledLNTest3)
+
+# split up the big cluster using gap statistic
+
+Kmax2=5
+gskmn2 <- clusGap(scaledLNTest3[,varvec2[1:2]], FUN = kmeans, nstart = 5,iter.max = 30, K.max = Kmax2, B = 5)
+for(k in 1:(Kmax2-1)) {
+  if(gskmn2$Tab[k,3]>gskmn2$Tab[(k+1),3]-gskmn2$Tab[(k+1),4]) {print(k+1)}; 
+  break;
+}
+# results give 1 cluster, so 2 total clusters
+
+
+################# TEST DATA ################################
+
+scaledAstroTest2 <- scale(Astrotest2[,2:(dim(Astrotest2)[2]-1)], center = TRUE, scale = apply(Astrotest2[,2:(dim(Astrotest2)[2]-1)], 2, sd, na.rm = TRUE)+0.001) # notice 0.001
+scaledAstroTest2 <- cbind(Astrotest2[,1],scaledAstroTest2,Astrotest2[,dim(Astrotest2)[2]])
+colnames(scaledAstroTest2)[1] <- "ID"
+scaledAstroTestpca2 <- prcomp(~scaledAstroTest2[,2]+
+                              scaledAstroTest2[,3]+
+                              scaledAstroTest2[,4]+
+                              scaledAstroTest2[,5]+
+                              scaledAstroTest2[,6]+
+                              scaledAstroTest2[,7]+
+                              scaledAstroTest2[,8]+
+                              scaledAstroTest2[,9]+
+                              scaledAstroTest2[,10]+
+                              scaledAstroTest2[,11]+
+                              scaledAstroTest2[,12]+
+                              scaledAstroTest2[,13]+
+                              scaledAstroTest2[,14]+
+                              scaledAstroTest2[,15]+
+                              scaledAstroTest2[,16]+
+                              scaledAstroTest2[,17]+
+                              scaledAstroTest2[,18]+
+                              scaledAstroTest2[,19]+
+                              scaledAstroTest2[,20]+
+                              scaledAstroTest2[,21]+
+                              scaledAstroTest2[,22]+
+                              scaledAstroTest2[,23]+
+                              scaledAstroTest2[,24]+
+                              scaledAstroTest2[,25]+
+                              scaledAstroTest2[,26]+
+                              scaledAstroTest2[,27]+
+                              scaledAstroTest2[,28]+
+                              scaledAstroTest2[,29]+
+                              scaledAstroTest2[,30]+
+                              scaledAstroTest2[,31]+
+                              scaledAstroTest2[,32]+
+                              scaledAstroTest2[,33]+
+                              scaledAstroTest2[,34]+
+                              scaledAstroTest2[,35]+
+                              scaledAstroTest2[,36]+
+                              scaledAstroTest2[,37]+
+                              scaledAstroTest2[,38]+
+                              scaledAstroTest2[,39]+
+                              scaledAstroTest2[,40]+
+                              scaledAstroTest2[,41]+
+                              scaledAstroTest2[,42]+
+                              scaledAstroTest2[,43]+
+                              scaledAstroTest2[,44]+
+                              scaledAstroTest2[,45]+
+                              scaledAstroTest2[,46]+
+                              scaledAstroTest2[,47]+
+                              scaledAstroTest2[,48]+
+                              scaledAstroTest2[,49]+
+                              scaledAstroTest2[,50]+
+                              scaledAstroTest2[,51]+
+                              scaledAstroTest2[,52]+
+                              scaledAstroTest2[,53]+
+                              scaledAstroTest2[,54]+
+                              scaledAstroTest2[,55]+
+                              scaledAstroTest2[,56]+
+                              scaledAstroTest2[,57]+
+                              scaledAstroTest2[,58]+
+                              scaledAstroTest2[,59]+
+                              scaledAstroTest2[,60]+
+                              scaledAstroTest2[,61]+
+                              scaledAstroTest2[,62]+
+                              scaledAstroTest2[,63]+
+                              scaledAstroTest2[,64]+
+                              scaledAstroTest2[,65]+
+                              scaledAstroTest2[,66]+
+                              scaledAstroTest2[,67]+
+                              scaledAstroTest2[,68]+
+                              scaledAstroTest2[,69]+
+                              scaledAstroTest2[,70]+
+                              scaledAstroTest2[,71]+
+                              scaledAstroTest2[,72]+
+                              scaledAstroTest2[,73]+
+                              scaledAstroTest2[,74]+
+                              scaledAstroTest2[,75]+
+                              scaledAstroTest2[,76]+
+                              scaledAstroTest2[,77]+
+                              scaledAstroTest2[,78]+
+                              scaledAstroTest2[,79]+
+                              scaledAstroTest2[,80]+
+                              scaledAstroTest2[,81]
+                            ,na.action = na.omit)
+
+# significant variables using PCA
+
+Test.nyt.latent.sem <- scaledAstroTestpca2$rotation
+rownames(Test.nyt.latent.sem) <- seq(2,81,1)
+screeplot(scaledAstroTestpca2,50,type="lines")
+signif(sort(Test.nyt.latent.sem[,1],decreasing=TRUE),2)
+varvec3 <- as.numeric(names(signif(sort(Test.nyt.latent.sem[,1],decreasing=TRUE),2)))
+
+# show first 10 significant variables using PCA - training, LN, test
+
+varvec[1:10]
+varvec2[1:10]
+varvec3[1:10]
+
+# training and test dataset have the same significant variables,
+# so we will do the exact same thing that we did to train set to
+# the test set.
+
+
+# k-means clustering on test data
+
+kmeansAstro7 <- kmeans(scaledAstroTest2[,varvec3[1:2]], 2,iter.max = 30,nstart=5)
+table(kmeansAstro7$cluster) # mostly in cluster 2
+
+
+# subseting the points in the big cluster
+
+scaledAstroTest3 <- scaledAstroTest2[(which(kmeansAstro7$cluster %in% 2)),] 
+
+# k-means clustering for the bigger cluster
+
+kmeansAstro8 <- kmeans(scaledAstroTest3[,varvec3[1:2]], 2,iter.max = 30,nstart=5)
+table(kmeansAstro8$cluster) # mostly in cluster 2
+
+# due to memory allocation, we had errors when we tried to run dist( ) and  cmdscale( ) on the 
+# test dataset. so, we conclude that the test dataset has three clusters based on information
+# from the training dataset.
+
+# we also conclude that the low noise dataset had a similiar result to the training dataset in that
+# it suggests 2 clusters and the first 2 significant variables however, the first two significant 
+# varibales are different. The LN dataset doesn't split up the bigger cluster so, it only has 
+# two distinct clusters. 
+
+
